@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>家庭账本 V5.1-DEEPSEEK</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f1f5f9;color:#1e293b;padding:20px}
+.container{max-width:1200px;margin:0 auto}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:24px;margin-bottom:24px}
+.card h2{font-size:1.15rem;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e2e8f0}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:.85rem;font-weight:600;color:#64748b}
+.form-group input,.form-group select{padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.95rem}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.btn{padding:10px 24px;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.btn:hover{opacity:.85}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-success{background:#16a34a;color:#fff}
+.btn-danger{background:#dc2626;color:#fff}
+.btn-outline{background:transparent;border:1px solid #e2e8f0;color:#1e293b}
+.btn-outline:hover{border-color:#2563eb;color:#2563eb}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.sort-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+.summary-item{text-align:center;padding:14px 8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0}
+.summary-item .label{font-size:.8rem;color:#64748b}
+.summary-item .value{font-size:1.4rem;font-weight:700;margin-top:4px}
+.summary-item .value.income{color:#16a34a}
+.summary-item .value.expense{color:#dc2626}
+.summary-item .value.saving{color:#2563eb}
+.table-wrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+th{background:#f8fafc;font-weight:600;color:#64748b;font-size:.8rem}
+tr:hover td{background:#f1f5f9}
+.tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.78rem;font-weight:600}
+.tag-income{background:#dcfce7;color:#15803d}
+.tag-expense{background:#fce4ec;color:#b91c1c}
+.tag-type{background:#e0f2fe;color:#0369a1}
+.del-btn{background:none;border:none;color:#dc2626;cursor:pointer;font-size:1.1rem;padding:2px 6px}
+.del-btn:hover{background:#fce4ec}
+.empty-state{text-align:center;color:#64748b;padding:30px 0}
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:12px 20px;border-radius:8px;color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:auto;animation:toastSlideIn .25s ease-out;max-width:320px;font-size:.9rem}
+.toast.success{background:#16a34a}
+.toast.error{background:#dc2626}
+.toast.info{background:#2563eb}
+@keyframes toastSlideIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+.webdav-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.webdav-dot.online{background:#16a34a}
+.webdav-dot.offline{background:#ccc}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10000;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:12px;padding:28px;max-width:440px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.modal h2{margin-bottom:16px}
+.modal label{display:block;font-size:.85rem;font-weight:600;color:#64748b;margin-top:12px;margin-bottom:4px}
+.modal input,.modal select{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.95rem}
+.modal .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
+.chart-box{background:#fafcff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;min-height:320px;position:relative}
+.chart-box canvas{max-height:300px;max-width:100%}
+.chart-full{grid-column:1/-1}
+.chart-empty{display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem;min-height:300px;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card" style="display:flex;align-items:center;justify-content:space-between">
+  <h1>📒 家庭账本 <span style="font-size:.7rem;color:#64748b;font-weight:400">V5.1-DEEPSEEK</span></h1>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span><span class="webdav-dot offline" id="webdavDot"></span><span id="webdavStatusText">未同步</span></span>
+    <button class="btn btn-outline btn-sm" onclick="setupWebDAV()">☁️ 同步</button>
+  </div>
+</div>
+<div class="card">
+  <h2>✏️ 添加记录</h2>
+  <div class="form-grid">
+    <div class="form-group"><label>日期</label><input type="date" id="recordDate"></div>
+    <div class="form-group"><label>类型</label><select id="recordType" onchange="populateCategories(this.value)"><option value="income">收入</option><option value="expense">支出</option></select></div>
+    <div class="form-group">
+      <label>分类</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <select id="recordCategory" style="flex:1;min-width:0"></select>
+        <button class="btn btn-outline btn-sm" onclick="showAddCategoryDialog(document.getElementById('recordType').value)" title="添加分类">+</button>
+        <button class="btn btn-outline btn-sm" onclick="showDeleteCategoryDialog(document.getElementById('recordType').value)" title="删除分类">−</button>
+      </div>
+    </div>
+    <div class="form-group"><label>金额</label><input type="number" id="recordAmount" placeholder="0.00" step="0.01" min="0"></div>
+    <div class="form-group"><label>备注</label><input type="text" id="recordNote" placeholder="可选"></div>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="addRecord()">➕ 添加</button>
+    <label class="btn btn-outline" style="cursor:pointer">📂 选择文件<input type="file" accept=".xlsx,.xls" id="excelFile" onchange="previewExcelFile(event)" style="display:none"></label>
+    <button class="btn btn-success" id="confirmImportBtn" style="display:none" onclick="confirmImport()">✅ 确认导入</button>
+    <button class="btn btn-outline btn-sm" id="cancelImportBtn" style="display:none" onclick="cancelImport()">取消</button>
+    <span id="importHint" style="font-size:.8rem;color:#64748b;align-self:center"></span>
+  </div>
+  <div id="excelImportStatus" style="margin-top:6px;font-size:.8rem;color:#64748b"></div>
+  <div id="excelPreviewArea" style="display:none;margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;max-height:300px;overflow-y:auto"></div>
+</div>
+<div class="card">
+  <h2>📊 汇总</h2>
+  <div class="summary-grid">
+    <div class="summary-item"><div class="label">总收入</div><div class="value income" id="sumIncome">¥0</div></div>
+    <div class="summary-item"><div class="label">总支出</div><div class="value expense" id="sumExpense">¥0</div></div>
+    <div class="summary-item"><div class="label">结余</div><div class="value saving" id="sumBalance">¥0</div></div>
+    <div class="summary-item"><div class="label">记录笔数</div><div class="value" id="sumCount" style="color:#64748b">0</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>💡 财务建议 (目标年结余5万)</h2>
+  <div id="financialAdviceContent" style="padding: 10px 0;"></div>
+</div>
+
+<div class="card">
+  <h2>📋 记录明细</h2>
+  <div class="sort-bar">
+    <label style="font-size:.8rem;color:#64748b">年份</label>
+    <select id="queryYear" onchange="onQueryChange()"></select>
+    <label style="font-size:.8rem;color:#64748b">月</label>
+    <select id="queryMonth" onchange="onQueryChange()"><option value="">全部</option><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select>
+    <label style="font-size:.8rem;color:#64748b">日</label>
+    <select id="queryDay" onchange="onQueryChange()"><option value="">全部</option></select>
+    <label style="font-size:.8rem;color:#64748b">类型</label>
+    <select id="queryType" onchange="onQueryChange()"><option value="">全部</option><option value="income">收入</option><option value="expense">支出</option></select>
+    <button class="btn btn-outline btn-sm" onclick="resetQuery()">重置</button>
+    <span style="flex:1"></span>
+    <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 导出CSV</button>
+    <button class="btn btn-outline btn-sm" onclick="toggleSortDir()">🔝 排序</button>
+    <button class="btn btn-danger btn-sm" id="batchDeleteBtn" onclick="batchDeleteRecords()" style="display:none">🗑 删除选中</button>
+  </div>
+  <div class="table-wrap" id="recordsTable"><div class="empty-state">暂无记录</div></div>
+</div>
+<div class="card">
+  <h2>📊 图表</h2>
+  <div class="chart-grid">
+    <div class="chart-box chart-full"><canvas id="trendChart"></canvas></div>
+    <div class="chart-box"><canvas id="barChartMonthly"></canvas></div>
+    <div class="chart-box"><canvas id="pieChartIncome"></canvas></div>
+    <div class="chart-box"><canvas id="pieChartExpense"></canvas></div>
+  </div>
+</div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<div class="modal-overlay" id="webdavModal">
+  <div class="modal">
+    <h2>☁️ GitHub Gist 同步设置</h2>
+    <label>GitHub Token</label><input type="password" id="webdavUrl" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+    <label>Gist ID（可选，留空自动创建）</label><input type="text" id="webdavUsername" placeholder="留空自动创建">
+    <label></label><input type="hidden" id="webdavPassword" value="">
+    <label>同步方向</label><select id="syncDirection"><option value="merge">双向合并</option><option value="push">仅本地上传</option><option value="pull">仅下载覆盖</option></select>
+    <div style="margin-top:12px;font-size:.75rem;color:#64748b;line-height:1.5">
+      💡 Token 获取: <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → 勾选 <b>gist</b> 权限。
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeWebDAVModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveWebDAVAndSync()">保存并同步</button>
+    </div>
+  </div>
+</div></div>
+</div>
+<div class="modal-overlay" id="categoryDialog">
+  <div class="modal">
+    <h2 id="categoryDialogTitle">管理分类</h2>
+    <div id="categoryDialogBody"></div>
+    <div class="btn-row"><button class="btn btn-outline" onclick="document.getElementById('categoryDialog').style.display='none'">关闭</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+const LS_RECORDS = 'finance_records';
+const LS_CATEGORIES = 'finance_categories';
+const LS_GIST = 'finance_gist';
+
+let customCategories = { income: ['工资','奖金','兼职','投资收益','红包','其他收入'], expense: ['餐饮','购物','交通','住房','水电','通讯','娱乐','医疗','教育','日用品','服饰','人情','其他支出'] };
+
+let records = [];
+let sortAsc = false;
+let _previewData = null;
+let _chartInstances = {};
+let _idSeq = Date.now();   // monotonic integer ID counter (fixes import delete bug)
+
+// Toast notification
+function toast(msg, type) {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type || 'info');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    if (el.parentNode) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(50px)';
+      el.style.transition = 'all .2s';
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 200);
+    }
+  }, 2600);
+}
+
+// Local storage (with tracking-prevention safety + V5.1-DEEPSEEK float-ID migration)
+function loadRecords() {
+  try {
+    var saved = localStorage.getItem(LS_RECORDS);
+    if (saved) {
+      records = JSON.parse(saved);
+      // V3.6: auto-migrate old float IDs (Date.now()+Math.random()) to integers
+      var migrated = 0;
+      for (var i = 0; i < records.length; i++) {
+        if (typeof records[i].id === 'number' && records[i].id !== Math.floor(records[i].id)) {
+          records[i].id = ++_idSeq;
+          migrated++;
+        } else if (typeof records[i].id === 'number' && records[i].id >= _idSeq) {
+          _idSeq = records[i].id + 1;
+        }
+      }
+      if (migrated > 0) {
+        console.log('[V5.1-DEEPSEEK] Migrated ' + migrated + ' old float-ID records to integer IDs');
+        try { localStorage.setItem(LS_RECORDS, JSON.stringify(records)); } catch(e) {}
+      }
+    }
+  } catch(e) { records = []; console.warn('localStorage read failed:', e); }
+}
+function saveRecords() { try { localStorage.setItem(LS_RECORDS, JSON.stringify(records)); } catch(e) { console.warn('localStorage write failed:', e); } }
+
+function formatMoney(n) { return '¥' + Number(n).toFixed(2); }
+function getToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function initDate() {
+  const el = document.getElementById('recordDate');
+  if (el) el.value = getToday();
+}
+
+function populateCategories(type) {
+  const sel = document.getElementById('recordCategory');
+  if (!sel) return;
+  const cats = customCategories[type] || [];
+  sel.innerHTML = cats.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+}
+
+function addRecord() {
+  const date = document.getElementById('recordDate').value;
+  const type = document.getElementById('recordType').value;
+  const category = document.getElementById('recordCategory').value;
+  const amount = parseFloat(document.getElementById('recordAmount').value);
+  const note = document.getElementById('recordNote').value.trim();
+  if (!date) { toast('请选择日期', 'error'); return; }
+  if (!amount || amount <= 0) { toast('请输入有效金额', 'error'); return; }
+  const r = { id: ++_idSeq, date: date, type: type, category: category, amount: amount, note: note };
+  records.push(r);
+  saveRecords();
+  render();
+  document.getElementById('recordAmount').value = '';
+  document.getElementById('recordNote').value = '';
+  toast('记录已添加', 'success');
+}
+
+function deleteRecord(id) {
+  if (!confirm('确定删除此记录？')) return;
+  records = records.filter(r => r.id !== id);
+  saveRecords();
+  render();
+  toast('已删除', 'info');
+}
+
+function onQueryChange() { render(); }
+
+function resetQuery() {
+  document.getElementById('queryYear').value = new Date().getFullYear();
+  document.getElementById('queryMonth').value = '';
+  document.getElementById('queryDay').value = '';
+  document.getElementById('queryType').value = '';
+  render();
+}
+
+function toggleSortDir() {
+  sortAsc = !sortAsc;
+  render();
+}
+
+function getFilteredRecords() {
+  const year = document.getElementById('queryYear').value;
+  const month = document.getElementById('queryMonth').value;
+  const day = document.getElementById('queryDay').value;
+  const type = document.getElementById('queryType').value;
+  let filtered = records;
+  if (year) filtered = filtered.filter(r => r.date.startsWith(year));
+  if (month) filtered = filtered.filter(r => parseInt(r.date.split('-')[1]) === parseInt(month));
+  if (day) filtered = filtered.filter(r => parseInt(r.date.split('-')[2]) === parseInt(day));
+  if (type) filtered = filtered.filter(r => r.type === type);
+  const sorted = [...filtered].sort((a, b) => sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+  return sorted;
+}
+
+function render() {
+  const filtered = getFilteredRecords();
+  const table = document.getElementById('recordsTable');
+  if (filtered.length === 0) {
+    table.innerHTML = '<div class="empty-state">暂无记录</div>';
+  } else {
+    let h = '<table><thead><tr><th><input type="checkbox" class="check-all"></th><th>日期</th><th>类型</th><th>分类</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+    filtered.forEach(r => {
+      const tagClass = r.type === 'income' ? 'tag-income' : 'tag-expense';
+      const typeLabel = r.type === 'income' ? '收入' : '支出';
+      const sign = r.type === 'income' ? '+' : '-' ;
+      const color = r.type === 'income' ? '#16a34a' : '#dc2626';
+      h += '<tr><td><input type="checkbox" class="del-check" value="' + r.id + '"></td>';
+      h += '<td>' + r.date + '</td>';
+      h += '<td><span class="tag ' + tagClass + '">' + typeLabel + '</span></td>';
+      h += '<td><span class="tag tag-type">' + r.category + '</span></td>';
+      h += '<td style="font-weight:600;color:' + color + '">' + sign + formatMoney(r.amount) + '</td>';
+      h += '<td style="color:#64748b">' + (r.note || '—') + '</td>';
+      h += '<td><button class="del-btn" onclick="deleteRecord(' + r.id + ')">✖</button></td></tr>';
+    });
+    h += '</tbody></table>';
+    table.innerHTML = h;
+  }
+  updateSummary();
+  updateBatchDeleteButton();
+  renderCharts();
+  renderFinancialAdvice();
+}
+
+function toggleSelectAll(el) {
+  document.querySelectorAll('.del-check').forEach(cb => cb.checked = el.checked);
+  updateBatchDeleteButton();
+}
+
+function updateBatchDeleteButton() {
+  const count = document.querySelectorAll('.del-check:checked').length;
+  var btn = document.getElementById('batchDeleteBtn');
+  console.log('[V5.1-DEEPSEEK] updateBatchDeleteButton: count=' + count);
+  if (count > 0) { btn.style.display = 'inline-flex'; btn.textContent = '🗑 删除选中(' + count + ')'; }
+  else btn.style.display = 'none';
+}
+
+function batchDeleteRecords() {
+  console.log('[V5.1-DEEPSEEK] batchDeleteRecords() called');
+  try {
+    var checked = document.querySelectorAll('.del-check:checked');
+    console.log('[V5.1-DEEPSEEK] checked.length=' + checked.length + ', records.length=' + records.length);
+    if (checked.length === 0) { console.log('[V5.1-DEEPSEEK] no checked items'); return; }
+    if (!confirm('确定删除选中 ' + checked.length + ' 条记录？')) { console.log('[V5.1-DEEPSEEK] confirm cancelled'); return; }
+
+    var idsToDelete = {};
+    for (var i = 0; i < checked.length; i++) {
+      idsToDelete[parseInt(checked[i].value, 10)] = true;
+    }
+    console.log('[V5.1-DEEPSEEK] idsToDelete:', Object.keys(idsToDelete).join(','));
+
+    var before = records.length;
+    records = records.filter(function(r) { return !idsToDelete.hasOwnProperty(r.id); });
+    console.log('[V5.1-DEEPSEEK] records: ' + before + ' -> ' + records.length);
+
+    try { localStorage.setItem(LS_RECORDS, JSON.stringify(records)); } catch(e) { console.warn('save failed', e); }
+
+    render();
+    console.log('[V5.1-DEEPSEEK] render() done');
+    toast('已删除 ' + checked.length + ' 条记录', 'info');
+  } catch(e) {
+    console.error('[V5.1-DEEPSEEK] batchDeleteRecords error:', e);
+    toast('删除失败：' + e.message, 'error');
+  }
+}
+
+function updateSummary() {
+  const filtered = getFilteredRecords();
+  let income = 0, expense = 0;
+  filtered.forEach(r => {
+    if (r.type === 'income') income += r.amount;
+    else expense += r.amount;
+  });
+  document.getElementById('sumIncome').textContent = formatMoney(income);
+  document.getElementById('sumExpense').textContent = formatMoney(expense);
+  document.getElementById('sumBalance').textContent = formatMoney(income - expense);
+  document.getElementById('sumCount').textContent = filtered.length;
+}
+
+function renderFinancialAdvice() {
+  const year = document.getElementById('queryYear').value;
+  if (!year) {
+    const adviceDiv = document.getElementById('financialAdviceContent');
+    if (adviceDiv) adviceDiv.innerHTML = '<div class="empty-state">请选择具体年份以查看建议</div>';
+    return;
+  }
+  
+  // Use filtered records (respects month/day/type filters) for the summary display
+  const filtered = getFilteredRecords();
+  
+  const target = 50000;
+  const yearRecords = records.filter(r => r.date.startsWith(year));
+  
+  let yearIncome = 0, yearExpense = 0;
+  let filteredIncome = 0, filteredExpense = 0;
+  const byCat = {};
+  
+  yearRecords.forEach(r => {
+    if (r.type === 'income') yearIncome += r.amount;
+    else {
+      yearExpense += r.amount;
+      byCat[r.category] = (byCat[r.category] || 0) + r.amount;
+    }
+  });
+  
+  // Also compute filtered totals
+  filtered.forEach(r => {
+    if (r.type === 'income') filteredIncome += r.amount;
+    else filteredExpense += r.amount;
+  });
+  
+  const balance = yearIncome - yearExpense;
+  const progress = Math.min(100, Math.max(0, (balance / target) * 100)).toFixed(1);
+  
+  // Build filter description for display
+  const month = document.getElementById('queryMonth').value;
+  const day = document.getElementById('queryDay').value;
+  const typeFilter = document.getElementById('queryType').value;
+  let filterLabel = year + '年';
+  if (month) filterLabel += month + '月';
+  if (day) filterLabel += day + '日';
+  if (typeFilter) filterLabel += typeFilter === 'income' ? '（收入）' : '（支出）';
+  else filterLabel += '（全部）';
+  
+  let advice = '';
+  if (balance >= target) {
+    advice = '🎉 恭喜！您已完成本年度 5 万元的结余目标！继续保持优秀的理财习惯！';
+  } else if (balance > 0) {
+    const diff = target - balance;
+    const now = new Date();
+    const currentYear = now.getFullYear().toString();
+    if (year === currentYear) {
+      const monthsLeft = 12 - now.getMonth(); 
+      const requiredPerMonth = (diff / monthsLeft).toFixed(2);
+      advice = `💪 目前结余 <strong>${formatMoney(balance)}</strong>，距目标还差 <strong>${formatMoney(diff)}</strong>。今年还剩 ${monthsLeft} 个月，建议后续每月结余目标：<strong>${formatMoney(requiredPerMonth)}</strong>。`;
+    } else {
+      advice = `💪 该年度结余 <strong>${formatMoney(balance)}</strong>，未能完成 5 万元目标，差额 <strong>${formatMoney(diff)}</strong>。`;
+    }
+  } else {
+    advice = `⚠️ 目前结余为 <strong style="color:#dc2626">${formatMoney(balance)}</strong>（处于亏损或持平状态）。距离 5 万元目标还有较大差距，建议复盘大额支出，削减非必要开支。`;
+  }
+
+  const sortedExpense = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  if (sortedExpense.length > 0) {
+    advice += `<br><br><span style="font-size:0.85rem;color:#64748b;">💡 <strong>优化建议</strong>：年度最大开支项是 <strong>${sortedExpense[0][0]}</strong> (${formatMoney(sortedExpense[0][1])})，其次是 <strong>${sortedExpense[1] ? sortedExpense[1][0] : '无'}</strong> (${sortedExpense[1] ? formatMoney(sortedExpense[1][1]) : '¥0.00'})。可以考虑在这些方面进行适当控制。</span>`;
+  }
+
+  // Show income/expense/balance for both year total and filtered view
+  const html = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      <div class="summary-item"><div class="label">${filterLabel}收入</div><div class="value income" style="font-size:1.1rem">${formatMoney(filteredIncome)}</div></div>
+      <div class="summary-item"><div class="label">${filterLabel}支出</div><div class="value expense" style="font-size:1.1rem">${formatMoney(filteredExpense)}</div></div>
+      <div class="summary-item"><div class="label">${filterLabel}结余</div><div class="value saving" style="font-size:1.1rem">${formatMoney(filteredIncome - filteredExpense)}</div></div>
+    </div>
+    <div style="margin-bottom: 12px; display:flex; justify-content:space-between; align-items:flex-end;">
+      <div>
+        <span style="font-size:0.9rem; color:#64748b">年度结余进度：</span> 
+        <strong style="color:#2563eb; font-size:1.2rem">${formatMoney(balance)}</strong> <span style="font-size:0.8rem;color:#64748b">/ ¥50,000.00</span>
+      </div>
+      <div style="font-size:0.9rem; font-weight:600; color:${progress >= 100 ? '#16a34a' : '#2563eb'}">${progress}%</div>
+    </div>
+    <div style="background:#e2e8f0; height:10px; border-radius:5px; margin-bottom:14px; overflow:hidden">
+      <div style="background:${progress >= 100 ? '#16a34a' : '#2563eb'}; height:100%; width:${progress}%"></div>
+    </div>
+    <p style="font-size:0.95rem; line-height:1.6; color:#1e293b; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">${advice}</p>
+  `;
+  const adviceDiv = document.getElementById('financialAdviceContent');
+  if (adviceDiv) adviceDiv.innerHTML = html;
+}
+
+function populateYearSelect() {
+  const sel = document.getElementById('queryYear');
+  const years = new Set();
+  records.forEach(r => years.add(r.date.substring(0, 4)));
+  if (years.size === 0) years.add(String(new Date().getFullYear()));
+  const sorted = Array.from(years).sort();
+  sel.innerHTML = sorted.map(y => '<option value="' + y + '">' + y + '年</option>').join('');
+}
+
+function populateDaySelect() {
+  const month = document.getElementById('queryMonth').value;
+  const year = document.getElementById('queryYear').value;
+  const sel = document.getElementById('queryDay');
+  sel.innerHTML = '<option value="">全部</option>';
+  if (!month || !year) return;
+  const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    sel.innerHTML += '<option value="' + d + '">' + d + '日</option>';
+  }
+}
+
+// ======== Excel Import with Preview ========
+function previewExcelFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    document.getElementById('excelImportStatus').innerHTML = '<span style="color:#dc2626">❌ XLSX库未加载，请检查网络</span>';
+    toast('XLSX库未加载', 'error');
+    return;
+  }
+  const statusEl = document.getElementById('excelImportStatus');
+  const previewEl = document.getElementById('excelPreviewArea');
+  const confirmBtn = document.getElementById('confirmImportBtn');
+  const cancelBtn = document.getElementById('cancelImportBtn');
+  _previewData = null;
+  confirmBtn.style.display = 'none';
+  cancelBtn.style.display = 'none';
+  previewEl.style.display = 'none';
+  statusEl.innerHTML = '<span style="color:#64748b">⏳ 正在解析文件...</span>';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
+      if (!rows || rows.length === 0) {
+        statusEl.innerHTML = '<span style="color:#dc2626">❌ 文件中没有数据</span>';
+        toast('文件中没有数据', 'error');
+        return;
+      }
+      const columnMap = detectColumns(Object.keys(rows[0]));
+      if (!columnMap.date || (!columnMap.incomeCol && !columnMap.expenseCol && !(columnMap.amountCol && columnMap.typeCol))) {
+        statusEl.innerHTML = '<span style="color:#dc2626">❌ 无法识别列，列名：' + Object.keys(rows[0]).join('、') + '</span>';
+        toast('列名识别失败', 'error');
+        return;
+      }
+      const newRecords = [];
+      const skipRows = [];
+      rows.forEach((row, idx) => {
+        try {
+          const parsed = parseExcelRow(row, columnMap);
+          if (parsed) newRecords.push(parsed);
+          else skipRows.push(idx + 2);
+        } catch(err) { skipRows.push(idx + 2); }
+      });
+      if (newRecords.length === 0) {
+        statusEl.innerHTML = '<span style="color:#dc2626">❌ 未能解析出有效记录</span>';
+        toast('未能解析出有效记录', 'error');
+        return;
+      }
+      const existingKeys = new Set(records.map(r => r.date + '|' + r.type + '|' + r.category + '|' + r.amount));
+      const uniqueNew = [];
+      let dupCount = 0;
+      newRecords.forEach(r => {
+        const key = r.date + '|' + r.type + '|' + r.category + '|' + r.amount;
+        if (!existingKeys.has(key)) { uniqueNew.push(r); existingKeys.add(key); }
+        else dupCount++;
+      });
+      _previewData = { records: uniqueNew, total: newRecords.length, dupCount: dupCount, skipRows: skipRows };
+      let ph = '<div style="font-size:.85rem;font-weight:600;margin-bottom:8px;color:#1e293b">📋 导入预览（共解析 ' + newRecords.length + ' 条，重复 ' + dupCount + ' 条，新增 ' + uniqueNew.length + ' 条）</div>';
+      if (uniqueNew.length > 0) {
+        ph += '<table style="font-size:.8rem;width:100%"><thead><tr><th>日期</th><th>类型</th><th>分类</th><th>金额</th><th>备注</th></tr></thead><tbody>';
+        uniqueNew.slice(0, 50).forEach(r => {
+          const tc = r.type === 'income' ? 'tag-income' : 'tag-expense';
+          const tl = r.type === 'income' ? '收入' : '支出';
+          ph += '<tr><td>' + r.date + '</td><td><span class="tag ' + tc + '">' + tl + '</span></td><td><span class="tag tag-type">' + r.category + '</span></td><td style="font-weight:600;color:' + (r.type==='income'?'#16a34a':'#dc2626') + '">' + (r.type==='income'?'+':'-') + formatMoney(r.amount) + '</td><td style="color:#64748b">' + (r.note || '—') + '</td></tr>';
+        });
+        if (uniqueNew.length > 50) ph += '<tr><td colspan="5" style="text-align:center;color:#64748b">... 以及另外 ' + (uniqueNew.length - 50) + ' 条 ...</td></tr>';
+        ph += '</tbody></table>';
+      } else {
+        ph += '<div style="text-align:center;padding:20px;color:#64748b">所有记录均为重复，无新增数据</div>';
+      }
+      previewEl.innerHTML = ph;
+      previewEl.style.display = 'block';
+      if (uniqueNew.length > 0) confirmBtn.style.display = 'inline-flex';
+      cancelBtn.style.display = 'inline-flex';
+      statusEl.innerHTML = '<span style="color:#16a34a">ℹ️ 解析完成，共 ' + newRecords.length + ' 条，新增 ' + uniqueNew.length + ' 条，请确认是否导入</span>';
+    } catch(err) {
+      statusEl.innerHTML = '<span style="color:#dc2626">❌ 文件解析失败：' + err.message + '</span>';
+      toast('文件解析失败', 'error');
+    }
+  };
+  reader.onerror = function() {
+    document.getElementById('excelImportStatus').innerHTML = '<span style="color:#dc2626">❌ 文件读取失败</span>';
+    toast('文件读取失败', 'error');
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+function confirmImport() {
+  if (!_previewData || !_previewData.records || _previewData.records.length === 0) {
+    toast('没有可导入的数据', 'error');
+    return;
+  }
+  const data = _previewData;
+  records = [...records, ...data.records];
+  saveRecords();
+  
+  // Re-populate year select in case new years were imported
+  const oldYear = document.getElementById('queryYear').value;
+  populateYearSelect();
+  if (Array.from(document.getElementById('queryYear').options).some(o => o.value === oldYear)) {
+    document.getElementById('queryYear').value = oldYear;
+  }
+  
+  render();
+  let msg = '✅ 成功导入 ' + data.records.length + ' 条新记录';
+  if (data.dupCount > 0) msg += '，' + data.dupCount + ' 条重复已跳过';
+  if (data.skipRows.length > 0) msg += '，' + data.skipRows.length + ' 行无法解析';
+  document.getElementById('excelImportStatus').innerHTML = '<span style="color:#16a34a">' + msg + '</span>';
+  toast(msg, 'success');
+  cancelImport();
+}
+
+function cancelImport() {
+  _previewData = null;
+  const b1 = document.getElementById('confirmImportBtn');
+  const b2 = document.getElementById('cancelImportBtn');
+  const b3 = document.getElementById('excelPreviewArea');
+  const b4 = document.getElementById('excelImportStatus');
+  if (b1) b1.style.display = 'none';
+  if (b2) b2.style.display = 'none';
+  if (b3) b3.style.display = 'none';
+  if (b4) b4.innerHTML = '';
+}
+
+// ======== Column Detection ========
+function detectColumns(headers) {
+  const map = { date: null, incomeCol: null, expenseCol: null, amountCol: null, typeCol: null, note: null, category: null };
+  headers.forEach(h => {
+    const l = h.toLowerCase().trim();
+    if (l.includes('筛选') || l.includes('filter') || l.includes('合计')) return;
+    if (l.includes('date') || l.includes('日期') || l.includes('time') || l.includes('day') || l.includes('时间')) map.date = h;
+    else if (l.includes('收入') || l.includes('income') || l.includes('revenue') || l.includes('credit') || l === '+') map.incomeCol = h;
+    else if (l.includes('支出') || l.includes('expense') || l.includes('cost') || l.includes('debit') || l.includes('spend') || l === '-') map.expenseCol = h;
+    else if (l.includes('金额') || l.includes('amount')) map.amountCol = h;
+    else if (l.includes('收支') || l.includes('类型') || l === 'type') map.typeCol = h;
+    else if (l.includes('note') || l.includes('remark') || l.includes('desc') || l.includes('comment') || l.includes('备注')) map.note = h;
+    else if (l.includes('cat') || l.includes('分类') || l.includes('类别') || l.includes('kind')) map.category = h;
+  });
+  return map;
+}
+
+function parseExcelRow(row, map) {
+  let date = '';
+  if (map.date) {
+    const v = row[map.date];
+    if (v instanceof Date) date = v.getFullYear() + '-' + String(v.getMonth()+1).padStart(2,'0') + '-' + String(v.getDate()).padStart(2,'0');
+    else if (typeof v === 'number') {
+      const d = new Date((v - 25569) * 86400 * 1000);
+      date = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    else {
+      const s = String(v).trim();
+      if (/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(s) || /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(s)) {
+        const p = s.split(/[-\/]/);
+        if (p[0].length === 4) date = p[0] + '-' + p[1].padStart(2,'0') + '-' + p[2].padStart(2,'0');
+        else date = p[2] + '-' + p[0].padStart(2,'0') + '-' + p[1].padStart(2,'0');
+      }
+    }
+  }
+  if (!date || date.length !== 10) return null;
+
+  let amount = 0, type = '';
+
+  // Determine income/expense from type column (e.g., "类型" with "收入"/"支出")
+  let typeFromCol = null;
+  if (map.typeCol) {
+    const tv = String(row[map.typeCol] || '').trim();
+    if (tv.includes('收入') || tv.toLowerCase() === 'income') typeFromCol = 'income';
+    else if (tv.includes('支出') || tv.toLowerCase() === 'expense') typeFromCol = 'expense';
+  }
+
+  if (map.incomeCol) {
+    const v = parseFloat(row[map.incomeCol]);
+    if (!isNaN(v) && v > 0) { amount = v; type = 'income'; }
+  }
+  if (map.expenseCol) {
+    const v = parseFloat(row[map.expenseCol]);
+    if (!isNaN(v) && v > 0) { amount = v; type = 'expense'; }
+  }
+  // Handle common amount column (e.g., "金额") paired with a type column
+  if (!type && map.amountCol && typeFromCol) {
+    const v = parseFloat(row[map.amountCol]);
+    if (!isNaN(v) && v > 0) { amount = v; type = typeFromCol; }
+  }
+  if (!type) return null;
+
+  let category = '其他' + (type === 'income' ? '收入' : '支出');
+  if (map.category && row[map.category]) {
+    const catVal = String(row[map.category]).trim();
+    if (catVal) category = catVal;
+  }
+
+  let note = '';
+  if (map.note && row[map.note]) note = String(row[map.note]).trim();
+
+  return { id: ++_idSeq, date: date, type: type, category: category, amount: amount, note: note };
+}
+
+// ======== Export CSV ========
+function exportCSV() {
+  if (records.length === 0) { toast('没有可导出的数据', 'error'); return; }
+  let csv = '日期,类型,分类,金额,备注\n';
+  records.forEach(r => {
+    csv += r.date + ',' + r.type + ',' + r.category + ',' + r.amount + ',' + (r.note || '') + '\n';
+  });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '家庭账本_数据_' + getToday() + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('导出成功', 'success');
+}
+
+// ======== GitHub Gist Sync (V5.1-DEEPSEEK) ========
+
+function loadGistConfig() {
+  try { var saved = localStorage.getItem(LS_GIST); if (saved) { return JSON.parse(saved); } } catch(e) {}
+  return { token: '', gistId: '', direction: 'merge' };
+}
+
+function saveGistConfig(cfg) {
+  try { localStorage.setItem(LS_GIST, JSON.stringify(cfg)); } catch(e) {}
+}
+
+function setupWebDAV() {
+  var cfg = loadGistConfig();
+  document.getElementById('webdavUrl').value = cfg.token || '';
+  document.getElementById('webdavUsername').value = cfg.gistId || '';
+  document.getElementById('syncDirection').value = cfg.direction || 'merge';
+  document.getElementById('webdavModal').classList.add('active');
+}
+
+function closeWebDAVModal() {
+  document.getElementById('webdavModal').classList.remove('active');
+}
+
+function saveWebDAVAndSync() {
+  var cfg = {
+    token: document.getElementById('webdavUrl').value.trim(),
+    gistId: document.getElementById('webdavUsername').value.trim(),
+    direction: document.getElementById('syncDirection').value
+  };
+  if (!cfg.token) { toast('请输入 GitHub Token', 'error'); return; }
+  saveGistConfig(cfg);
+  closeWebDAVModal();
+  syncToWebDAV();
+}
+
+function syncToWebDAV() {
+  var cfg = loadGistConfig();
+  if (!cfg.token) { toast('请先配置 Token', 'error'); return; }
+  var dot = document.getElementById('webdavDot');
+  var txt = document.getElementById('webdavStatusText');
+  dot.className = 'webdav-dot offline';
+  txt.textContent = '同步中...';
+
+  function onDone() { dot.className = 'webdav-dot online'; txt.textContent = '已同步'; toast('同步完成', 'success'); }
+  function onError(msg) { txt.textContent = '同步失败'; toast('同步失败：' + msg, 'error'); }
+
+  ensureGist(function(err) {
+    if (err) { onError(err); return; }
+    if (cfg.direction === 'pull') {
+      pullGist(function(e) { if (e) onError(e); else onDone(); });
+    } else if (cfg.direction === 'push') {
+      pushGist(function(e) { if (e) onError(e); else onDone(); });
+    } else {
+      pullGist(function(e) {
+        if (e) { onError(e); return; }
+        pushGist(function(e2) { if (e2) onError(e2); else onDone(); });
+      });
+    }
+  });
+}
+
+function gistFetch(method, path, body, callback) {
+  var cfg = loadGistConfig();
+  var h = { 'Authorization': 'token ' + cfg.token, 'Accept': 'application/vnd.github.v3+json' };
+  if (body) h['Content-Type'] = 'application/json';
+  console.log('[V5.1-DEEPSEEK] ' + method + ' ' + path);
+  fetch('https://api.github.com' + path, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined })
+    .then(function(res) {
+      if (res.status === 204) { callback(true, null); return; }
+      res.json().then(function(d) { callback(res.ok, d); }).catch(function() { callback(false, '解析失败'); });
+    }).catch(function() { callback(false, '网络错误'); });
+}
+
+function ensureGist(callback) {
+  var cfg = loadGistConfig();
+  if (cfg.gistId) { callback(null); return; }
+  toast('正在创建 Gist...', 'info');
+  gistFetch('POST', '/gists', { description: '家庭账本', public: false, files: { 'finance_records.json': { content: JSON.stringify(records) } } }, function(ok, data) {
+    if (ok && data && data.id) {
+      cfg.gistId = data.id; saveGistConfig(cfg);
+      console.log('[V5.1-DEEPSEEK] Created gist: ' + data.id);
+      callback(null);
+    } else { callback('创建失败: ' + (data ? data.message : '')); }
+  });
+}
+
+function pullGist(callback) {
+  gistFetch('GET', '/gists/' + loadGistConfig().gistId, null, function(ok, data) {
+    if (!ok) { callback(data ? data.message : '下载失败'); return; }
+    var f = data.files && data.files['finance_records.json'];
+    if (!f || !f.content) { callback(null); return; }
+    try {
+      var remote = JSON.parse(f.content);
+      if (remote && remote.length > 0) {
+        records = mergeRecords(records, remote); saveRecords(); populateYearSelect(); render();
+        console.log('[V5.1-DEEPSEEK] Pulled ' + remote.length + ' records');
+      }
+      callback(null);
+    } catch(e) { callback('解析失败'); }
+  });
+}
+
+function pushGist(callback) {
+  gistFetch('PATCH', '/gists/' + loadGistConfig().gistId, { files: { 'finance_records.json': { content: JSON.stringify(records) } } }, function(ok, data) {
+    if (ok) { console.log('[V5.1-DEEPSEEK] Pushed ' + records.length + ' records'); callback(null); }
+    else { callback(data ? data.message : '上传失败'); }
+  });
+}
+
+function mergeRecords(local, remote) {
+  var seen = new Set(); local.forEach(function(r) { seen.add(r.id); });
+  var merged = local.slice();
+  remote.forEach(function(r) { if (!seen.has(r.id)) { merged.push(r); seen.add(r.id); } });
+  merged.sort(function(a, b) { return b.date.localeCompare(a.date) || b.id - a.id; });
+  return merged;
+}
+
+function renderCharts() {
+  const filtered = getFilteredRecords();
+  if (typeof Chart === 'undefined') return;
+  Object.values(_chartInstances).forEach(c => { if (c) c.destroy(); });
+  _chartInstances = {};
+
+  const chartBoxes = [
+    { id: 'trendChart', box: null },
+    { id: 'barChartMonthly', box: null },
+    { id: 'pieChartIncome', box: null },
+    { id: 'pieChartExpense', box: null }
+  ];
+  chartBoxes.forEach(cb => {
+    const el = document.getElementById(cb.id);
+    if (el) cb.box = el.parentNode;
+  });
+
+  if (filtered.length === 0) {
+    chartBoxes.forEach(cb => {
+      if (cb.box) cb.box.innerHTML = '<div class="chart-empty">暂无数据</div>';
+    });
+    return;
+  } else {
+    // Restore canvas elements if they were replaced with empty state
+    chartBoxes.forEach(cb => {
+      if (cb.box && cb.box.querySelector('.chart-empty')) {
+        cb.box.innerHTML = '<canvas id="' + cb.id + '"></canvas>';
+      }
+    });
+  }
+
+  // Trend chart (line)
+  const byDate = {};
+  filtered.forEach(r => {
+    if (!byDate[r.date]) byDate[r.date] = { income: 0, expense: 0 };
+    if (r.type === 'income') byDate[r.date].income += r.amount;
+    else byDate[r.date].expense += r.amount;
+  });
+  const dates = Object.keys(byDate).sort();
+  const ctx1 = document.getElementById('trendChart');
+  if (ctx1) {
+    _chartInstances.trend = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [
+          { label: '收入', data: dates.map(d => byDate[d].income), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.1)', fill: true, tension: .3 },
+          { label: '支出', data: dates.map(d => byDate[d].expense), borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.1)', fill: true, tension: .3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '收支趋势' } } }
+    });
+  }
+
+  // Monthly comparison bar chart
+  const byMonth = {};
+  filtered.forEach(r => {
+    const m = r.date.substring(0, 7); // "YYYY-MM"
+    if (!byMonth[m]) byMonth[m] = { income: 0, expense: 0 };
+    if (r.type === 'income') byMonth[m].income += r.amount;
+    else byMonth[m].expense += r.amount;
+  });
+  const months = Object.keys(byMonth).sort();
+  const ctxBar = document.getElementById('barChartMonthly');
+  if (ctxBar && months.length > 0) {
+    _chartInstances.barMonthly = new Chart(ctxBar, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          { label: '收入', data: months.map(m => byMonth[m].income), backgroundColor: 'rgba(22,163,74,.7)', borderColor: '#16a34a', borderWidth: 1 },
+          { label: '支出', data: months.map(m => byMonth[m].expense), backgroundColor: 'rgba(220,38,38,.7)', borderColor: '#dc2626', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '月度收支对比' } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  } else if (ctxBar) {
+    ctxBar.parentNode.innerHTML = '<div class="chart-empty">暂无月度数据</div>';
+  }
+
+  // Pie charts
+  const byCat = { income: {}, expense: {} };
+  filtered.forEach(r => {
+    if (!byCat[r.type][r.category]) byCat[r.type][r.category] = 0;
+    byCat[r.type][r.category] += r.amount;
+  });
+
+  function buildPie(canvasId, data, title) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const labels = Object.keys(data);
+    if (labels.length === 0) {
+      canvas.parentNode.innerHTML = '<div class="chart-empty">暂无数据</div>';
+      return;
+    }
+    const colors = ['#2563eb','#16a34a','#dc2626','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#d946ef','#0ea5e9','#a855f7','#eab308'];
+    _chartInstances[canvasId] = new Chart(canvas, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{ data: labels.map(k => data[k]), backgroundColor: colors.slice(0, labels.length) }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: title } } }
+    });
+  }
+
+  buildPie('pieChartIncome', byCat.income, '收入分类');
+  buildPie('pieChartExpense', byCat.expense, '支出分类');
+}
+
+// ======== Category Management ========
+function showAddCategoryDialog(type) {
+  showCategoryDialog(type, 'add');
+}
+function showDeleteCategoryDialog(type) {
+  showCategoryDialog(type, 'delete');
+}
+
+function showCategoryDialog(type, mode) {
+  const title = mode === 'add' ? '添加分类' : '删除分类';
+  document.getElementById('categoryDialogTitle').textContent = title + ' - ' + (type === 'income' ? '收入' : '支出');
+  const body = document.getElementById('categoryDialogBody');
+  const cats = customCategories[type] || [];
+  
+  if (mode === 'add') {
+    body.innerHTML = `<label style="margin-top:0">新分类名称</label><input type="text" id="newCategoryName" placeholder="输入分类名称"><div class="btn-row"><button class="btn btn-primary" onclick="addCategory('${type}')">确定添加</button></div>`;
+  } else {
+    let h = `<label style="margin-top:0">选择要删除的分类</label><select id="deleteCategorySelect">`;
+    cats.forEach(c => { h += `<option value="${c}">${c}</option>`; });
+    h += `</select><div class="btn-row"><button class="btn btn-danger" onclick="deleteCategory('${type}')">确定删除</button></div>`;
+    body.innerHTML = h;
+  }
+  document.getElementById('categoryDialog').style.display = 'flex';
+}
+
+function addCategory(type) {
+  const name = document.getElementById('newCategoryName').value.trim();
+  if (!name) { toast('请输入分类名称', 'error'); return; }
+  if (!customCategories[type]) customCategories[type] = [];
+  if (customCategories[type].includes(name)) { toast('分类已存在', 'error'); return; }
+  customCategories[type].push(name);
+  try { localStorage.setItem(LS_CATEGORIES, JSON.stringify(customCategories)); } catch(e) { console.warn('Category save failed:', e); }
+  populateCategories(document.getElementById('recordType').value);
+  document.getElementById('categoryDialog').style.display = 'none';
+  toast('分类已添加', 'success');
+}
+
+function deleteCategory(type) {
+  const name = document.getElementById('deleteCategorySelect').value;
+  if (!name) return;
+  if (!confirm('确定删除分类 "' + name + '"？')) return;
+  customCategories[type] = customCategories[type].filter(c => c !== name);
+  try { localStorage.setItem(LS_CATEGORIES, JSON.stringify(customCategories)); } catch(e) { console.warn('Category save failed:', e); }
+  populateCategories(document.getElementById('recordType').value);
+  document.getElementById('categoryDialog').style.display = 'none';
+  toast('分类已删除', 'info');
+}
+
+// ======== Init ========
+function init() {
+  loadRecords();
+  try { const savedCats = localStorage.getItem(LS_CATEGORIES); if (savedCats) { customCategories = JSON.parse(savedCats); } } catch(e) { console.warn('Category load failed:', e); }
+  initDate();
+  populateCategories('expense');
+  populateCategories(document.getElementById('recordType').value);
+  populateYearSelect();
+  document.getElementById('queryYear').value = new Date().getFullYear();
+
+  // Event delegation for checkbox selection (survives table rebuilds)
+  document.getElementById('recordsTable').addEventListener('change', function(e) {
+    var t = e.target;
+    if (!t || t.type !== 'checkbox') return;
+    if (t.classList.contains('check-all')) {
+      document.querySelectorAll('.del-check').forEach(function(cb) { cb.checked = t.checked; });
+    }
+    updateBatchDeleteButton();
+  });
+
+  render();
+  document.getElementById('queryMonth').addEventListener('change', populateDaySelect);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+window.addRecord = addRecord;
+window.deleteRecord = deleteRecord;
+window.previewExcelFile = previewExcelFile;
+window.confirmImport = confirmImport;
+window.cancelImport = cancelImport;
+window.setupWebDAV = setupWebDAV;
+window.closeWebDAVModal = closeWebDAVModal;
+window.saveWebDAVAndSync = saveWebDAVAndSync;
+window.exportCSV = exportCSV;
+window.batchDeleteRecords = batchDeleteRecords;
+window.toggleSortDir = toggleSortDir;
+window.resetQuery = resetQuery;
+window.onQueryChange = onQueryChange;
+window.showAddCategoryDialog = showAddCategoryDialog;
+window.showDeleteCategoryDialog = showDeleteCategoryDialog;
+window.addCategory = addCategory;
+window.deleteCategory = deleteCategory;
+window.toggleSelectAll = toggleSelectAll;
+</script>
+</body>
+</html>
+
